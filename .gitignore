@@ -1,0 +1,12 @@
+# أسرار البيئة — لا تُرفع إلى Git إطلاقًا
+.env
+.env.*
+!.env.example
+
+# الاعتماديات والبناء
+node_modules/
+.vercel/
+
+# سجلات ونواتج محلية
+*.log
+.DS_Store
