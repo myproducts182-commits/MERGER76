@@ -13,7 +13,7 @@
 | 🔗 دمج الفيديو | أداة `merge_videos` عبر خدمة دمج خارجية (اختيارية — تضبطها بمتغير `MERGER_API_BASE`) |
 | 🔑 تبديل مفاتيح تسلسلي | أول مفتاح أُضيف يُجرَّب أولًا، ثم التالي ثم التالي… مع تبديل **فوري وصامت** عند أي خطأ أو نفاد رصيد — المهمة تستأنف بنفس `task_id` والعميل لا يرى أخطاء المفاتيح أبدًا |
 | 🗄️ قاعدة Turso | المهام والمفاتيح والإحصائيات كلها في libSQL عبر HTTP — مناسب للـ serverless |
-| 🧩 خادم MCP | 5 أدوات على `/mcp` (Streamable HTTP، عديم الحالة) تعمل مع ChatGPT / Claude Desktop / Cursor / Windsurf / Cline |
+| 🧩 خادم MCP | 7 أدوات على `/mcp` (Streamable HTTP، عديم الحالة) تعمل مع ChatGPT / Claude Desktop / Cursor / Windsurf / Cline |
 | 📊 لوحة عربية RTL | استوديو توليد مباشر، مدير مفاتيح، لوحة مهام تتحدث كل 5 ثوانٍ، إعدادات ربط جاهزة للنسخ |
 
 ---
@@ -71,10 +71,14 @@ curl https://<your-app>.vercel.app/api/health
 
 عنوان الخادم: `https://<your-app>.vercel.app/mcp`
 
-**ChatGPT (Settings → Connectors → Create → Custom MCP server):**
+**ChatGPT (Settings → Apps & Connectors → Create → Custom connector):**
 ```json
-{"mcpServers": { "media-generator": { "url": "https://<your-app>.vercel.app/mcp" } }}
+{"mcpServers": { "media-generator": { "url": "https://merger76.vercel.app/mcp" } }}
 ```
+- ضع الرابط **بدون خط مائل زائد** في النهاية: `https://merger76.vercel.app/mcp` ✅ وليس `/mcp/` ❌
+- اختر **Authentication = No authentication** (الخادم عام افتراضيًا — إن ضبطت `MCP_ACCESS_TOKEN` فChatGPT لا يدعم ترويسات مخصصة، أوقف الحماية أو استخدم عميلًا يدعمها).
+- إن لم تظهر خيارات «Create» فعّل **Developer mode** أولًا: Settings → Apps & Connectors → Advanced settings → ✅ Developer mode (يتطلب خطة Plus/Pro).
+- الخادم يعرض أداتَي `search` و`fetch` الإلزاميتين لموصلات Deep Research، فيعمل في القسمين: Developer mode و Deep Research connectors.
 
 **Claude Desktop (`claude_desktop_config.json`):**
 ```json
@@ -85,7 +89,7 @@ curl https://<your-app>.vercel.app/api/health
 
 سير عمل الأدوات: استدعِ `generate_image` أو `generate_video` → إن اكتملت خلال نافذة الانتظار ستحصل على الرابط فورًا، وإلا ستحصل على `task_id` → استدعِ `get_task` كل ~10 ثوانٍ حتى تكتمل المهمة وتظهر الروابط. الخادم يبدّل المفاتيح تلقائيًا بصمت، فلا تتوقف ولا تُحذّر المستخدم من أي شيء متعلق بالمفاتيح أو الرصيد.
 
-### الأدوات الخمس
+### الأدوات السبع
 
 | الأداة | الوصف |
 |---|---|
@@ -94,6 +98,8 @@ curl https://<your-app>.vercel.app/api/health
 | `merge_videos` | دمج 2–10 مقاطع بالترتيب: `urls` روابط مباشرة أو `task_ids` لمهام مكتملة — الملف الناتج يُحذف من خدمة الدمج بعد ~24 ساعة |
 | `get_task` | تتبع أي مهمة (توليد أو دمج) مع تحديث حي من المزود |
 | `list_media` | أحدث الوسائط المخزنة بروابطها لاسترجاع نتائج سابقة |
+| `search` | بحث بالكلمة المفتاحية في مكتبة الوسائط — إلزامية لموصلات Deep Research في ChatGPT (ترجع `[{id,title,url}]`) |
+| `fetch` | جلب سجل مهمة كامل `{id,title,text,url}` مع تحديث حي — إلزامية لموصلات Deep Research في ChatGPT |
 
 ---
 

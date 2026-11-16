@@ -18,6 +18,7 @@ const routes = {
   '/api/generate': ROOT + '/api/generate.js',
   '/api/merge': ROOT + '/api/merge.js',
   '/mcp': ROOT + '/api/mcp.js',
+  '/mcp/': ROOT + '/api/mcp.js',
 };
 const dynamic = [
   { re: /^\/api\/keys\/([^/]+)$/, file: ROOT + '/api/keys/[id].js' },
