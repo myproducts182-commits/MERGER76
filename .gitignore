@@ -10,3 +10,9 @@ node_modules/
 # سجلات ونواتج محلية
 *.log
 .DS_Store
+
+# الجسر المحلي — أسرار محلية فقط لا تُرفع أبدًا
+bridge/bridge.env
+bridge/.env
+bridge/flow-profile/
+bridge/results/

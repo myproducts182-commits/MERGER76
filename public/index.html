@@ -259,6 +259,13 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
       <div class="list" id="keysList"><div class="empty">لا توجد مفاتيح بعد — أضف أول مفتاح لتبدأ التوليد.</div></div>
     </section>
 
+    <!-- Google Flow — الجسر المحلي -->
+    <section class="card">
+      <h2><span class="ic">🔮</span> Google Flow — الجسر المحلي</h2>
+      <div class="sub">توليد على موقع flow.google بجلسة متصفحك وكريدتات اشتراكك — يتطلب تشغيل الجسر على جهازك (مجلد bridge في المشروع).</div>
+      <div id="flowStatus" class="list"><div class="empty">جارٍ فحص حالة الجسر…</div></div>
+    </section>
+
     <!-- لوحة المهام -->
     <section class="card">
       <h2><span class="ic">📋</span> لوحة المهام</h2>
@@ -576,7 +583,28 @@ function renderCfg() {
 
 // ============ الإقلاع ============
 renderAspects();
-loadHealth(); loadModels(); loadKeys(); loadTasks();
+// ============ حالة جسر Google Flow ============
+async function loadFlowStatus() {
+  const { data } = await api('/api/flow/status');
+  if (!data || !data.bridge) return;
+  const b = data.bridge;
+  const box = $('flowStatus');
+  const dot = b.online ? '<span class="dot ok"></span>' : '<span class="dot" style="background:#6b7280"></span>';
+  const fake = b.fake ? ' · <b>وضع محاكاة FAKE</b>' : '';
+  let html = `<div class="item"><div class="top">${dot}
+    <b>${b.online ? 'الجسر متصل' : 'الجسر غير متصل'}</b>${fake}
+    <span class="meta">${b.lastSeen ? 'آخر نبض: ' + dt(b.lastSeen) : 'لم يتصل بعد'}</span>
+    <span class="spacer"></span><span class="meta">${b.version ? 'v' + esc(b.version) : ''}</span></div>
+    <div class="meta">أوامر معلقة: ${data.queue?.pendingCommands ?? 0} · مهام جارية: ${data.queue?.activeJobs ?? 0} · الأدوات: flow_status / flow_generate_video / flow_probe…</div>`;
+  if (!b.online) html += `<div class="hint"><span class="i">💡</span><span>شغّل على جهازك Windows: مجلد <b>bridge</b> من المشروع ← <b>install-windows.bat</b> ثم استخدم أدوات flow_* من ChatGPT. التفاصيل في bridge/README-BRIDGE.md</span></div>`;
+  if (data.recentJobs?.length) {
+    html += '<div class="meta" style="margin-top:8px">أحدث مهام Flow:</div>' + data.recentJobs.map((j) =>
+      `<div class="meta">• [${esc(j.status)}] ${esc(j.tool)} — ${j.progress}% — <span class="mono">${esc(j.job_id.slice(0, 8))}…</span> ${esc(j.stage || '')}</div>`).join('');
+  }
+  box.innerHTML = html + '</div>';
+}
+
+loadHealth(); loadModels(); loadKeys(); loadTasks(); loadFlowStatus(); setInterval(loadFlowStatus, 10000);
 setInterval(loadTasks, 5000);
 setInterval(loadHealth, 30000);
 </script>

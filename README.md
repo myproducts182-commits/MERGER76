@@ -53,6 +53,8 @@ https://vercel.com/new/clone?repository-url=https://github.com/myproducts182-com
 | `ADMIN_TOKEN` | اختياري | حماية إضافة/حذف المفاتيح (ترويسة `X-Admin-Token`) |
 | `DEAPI_IMAGE_MODEL` / `DEAPI_VIDEO_MODEL` | اختياري | تجاوز الموديلين الافتراضيين لـ deAPI |
 | `GOOGLE_FLOW_PUBLIC_BASE` | اختياري | نطاق عام لروابط فيديو Google Flow — يُستنتج تلقائيًا من Vercel (`VERCEL_PROJECT_PRODUCTION_URL`)، اضبطه فقط للتشغيل المحلي خارج Vercel |
+| `BRIDGE_TOKEN` | اختياري | توكن الجسر المحلي لـ Google Flow (نفس القيمة في `bridge/bridge.env` على جهازك) — بدونه تبقى أدوات `flow_*` تعيد رسالة إعداد واضحة |
+| `FLOW_PUBLIC_BASE` | اختياري | نطاق عام لروابط `/api/flow/file/` — يُستنتج تلقائيًا من Vercel |
 
 3. **Deploy** — لا حاجة لأي إعداد آخر (لا بناء، لا اعتماديات).
 
@@ -66,6 +68,21 @@ https://vercel.com/new/clone?repository-url=https://github.com/myproducts182-com
 المفاتيح تُخزَّن في Turso وتظهر **مقنَّعة** دائمًا (`sk-dp-2••••••••06ae`). أضف أكثر من مفتاح لكل مزود لتفعيل التبديل التسلسلي المستقل.
 
 > **ملاحظة — روابط فيديو Google Flow:** روابط Files API لدى Google تتطلب مفتاحًا للتنزيل، لذا يُقدَّم الفيديو عبر وسيط التطبيق نفسه: `https://<your-app>.vercel.app/api/gf/{task_id}` — رابط عام يعمل مع المتصفح وخدمة الدمج دون كشف أي مفتاح، ويبقى صالحًا طوال بقاء الملف لدى Google (~48 ساعة).
+
+### 3-ب) Google Flow عبر الجسر المحلي (كريدتات اشتراكك — بدون أي مفتاح API)
+
+خلافًا لمزود Gemini أعلاه، أدوات `flow_*` الثلاث عشرة تعمل على **موقع flow.google نفسه**
+من متصفحك على جهازك — جلسة Google الخاصة بك وكريدتات اشتراكك، بلا أي مفتاح API
+(لا يوجد API رسمي من Flow). المكونات:
+
+- **على Vercel** (هذا المستودع): قائمة أوامر ووسيط بث — أضف فقط متغير `BRIDGE_TOKEN`
+- **على جهازك Windows** (مجلد `bridge/`): `install-windows.bat` يثبّت ويشغّل تلقائيًا
+  جسرًا يسحب الأوامر وينفذها عبر Chrome DevTools Protocol في جلسة متصفح مخصصة
+  تسجل دخولك إليها مرة واحدة
+
+البدء الآمن: `FAKE=1` يحاكي كل شيء بدون متصفح وبدون كريدتات — تحققت منه محليًا
+(أمر → تقدم → نتيجة → بث ملف مطابق بايتًا بايتًا). الدليل الكامل:
+[`bridge/README-BRIDGE.md`](bridge/README-BRIDGE.md).
 
 ### 4) تحقق من الجهوزية
 

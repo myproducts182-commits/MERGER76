@@ -19,11 +19,14 @@ const routes = {
   '/api/merge': ROOT + '/api/merge.js',
   '/mcp': ROOT + '/api/mcp.js',
   '/mcp/': ROOT + '/api/mcp.js',
+  '/api/flow/bridge': ROOT + '/api/flow/bridge.js',
+  '/api/flow/status': ROOT + '/api/flow/status.js',
 };
 const dynamic = [
   { re: /^\/api\/keys\/([^/]+)$/, file: ROOT + '/api/keys/[id].js' },
   { re: /^\/api\/tasks\/([^/]+)$/, file: ROOT + '/api/tasks/[id].js' },
   { re: /^\/api\/gf\/([^/]+)$/, file: ROOT + '/api/gf/[id].js' },
+  { re: /^\/api\/flow\/file\/([^/]+)$/, file: ROOT + '/api/flow/file/[id].js' },
 ];
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
