@@ -18,9 +18,10 @@ module.exports = async (req, res) => {
     ok: healthy,
     database: healthy ? 'turso-connected' : 'turso-error',
     mcpEndpoint: '/mcp',
-    models: models.MODELS.map((m) => ({ canonical: m.slug, type: m.type, label: m.label, providers: ['deapi'] })),
+    providers: ['deapi', 'google-flow'],
+    models: models.MODELS.map((m) => ({ canonical: m.slug, type: m.type, label: m.label, providers: [m.provider || 'deapi'] })),
     merger: { base: env.MERGER_API_BASE || null, configured: !!env.MERGER_API_BASE, healthy: mHealthy },
     authRequired: !!env.MCP_ACCESS_TOKEN,
-    version: '1.2.0',
+    version: '1.4.0',
   });
 };

@@ -9,8 +9,8 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.end();
   if (req.method !== 'GET') { json(res, 405, { error: 'طريقة غير مسموحة — استخدم GET' }); return; }
 
-  const image = models.byType('image').map((m) => ({ slug: m.slug, label: m.label, aliases: m.aliases, defaults: m.defaults, limits: m.fallbackLimits }));
-  const video = models.byType('video').map((m) => ({ slug: m.slug, label: m.label, aliases: m.aliases, defaults: m.defaults, limits: m.fallbackLimits, featured: !!m.featured }));
+  const image = models.byType('image').map((m) => ({ slug: m.slug, label: m.label, provider: m.provider || 'deapi', aliases: m.aliases, defaults: m.defaults, limits: m.fallbackLimits }));
+  const video = models.byType('video').map((m) => ({ slug: m.slug, label: m.label, provider: m.provider || 'deapi', aliases: m.aliases, defaults: m.defaults, limits: m.fallbackLimits, featured: !!m.featured }));
 
   let live = null;
   try {
@@ -21,5 +21,5 @@ module.exports = async (req, res) => {
     }
   } catch (e) { live = null; }
 
-  json(res, 200, { image, video, live, provider: 'deapi.ai' });
+  json(res, 200, { image, video, live, providers: ['deapi', 'google-flow'], provider: 'multi' });
 };

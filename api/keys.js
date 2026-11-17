@@ -6,6 +6,11 @@ const { sanitizeError } = require('../lib/generate');
 const { cors, json, readJson, adminOk } = require('../lib/http');
 const env = require('../lib/env');
 
+const PROVIDERS = [
+  { id: 'deapi', label: 'deAPI.ai', hint: 'sk-dp-… — من deapi.ai' },
+  { id: 'google-flow', label: 'Google Flow', hint: 'AIza… — من aistudio.google.com (فيديو فقط)' },
+];
+
 function shape(k) {
   return {
     id: k.id, provider: k.provider, label: k.label, masked: maskKey(k.api_key),
@@ -21,7 +26,7 @@ module.exports = async (req, res) => {
 
   if (req.method === 'GET') {
     const rows = await db.listKeys();
-    return json(res, 200, { keys: rows.map(shape), providers: ['deapi'] });
+    return json(res, 200, { keys: rows.map(shape), providers: PROVIDERS.map((p) => p.id) });
   }
 
   if (req.method === 'POST') {
@@ -31,7 +36,10 @@ module.exports = async (req, res) => {
     const provider = String(body.provider || 'deapi').toLowerCase();
     const label = String(body.label || '').slice(0, 100);
     if (!apiKey) { json(res, 400, { error: 'مفتاح API مطلوب.' }); return; }
-    if (provider !== 'deapi') { json(res, 400, { error: 'المزود المدعوم حاليًا هو deapi فقط.' }); return; }
+    if (!PROVIDERS.some((p) => p.id === provider)) {
+      json(res, 400, { error: `المزود غير مدعوم. المزودات المتاحة: ${PROVIDERS.map((p) => p.id).join('، ')}.` });
+      return;
+    }
     const r = await db.insertKey({ provider, api_key: apiKey, label });
     if (r.error === 'duplicate') { json(res, 409, { error: 'هذا المفتاح مضاف مسبقًا لنفس المزود.' }); return; }
     const k = await db.getKey(r.id);

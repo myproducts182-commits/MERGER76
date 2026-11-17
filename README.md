@@ -8,8 +8,9 @@
 
 | القدرة | التفاصيل |
 |---|---|
-| 🖼️ توليد الصور | Z-Image Turbo (افتراضي)، FLUX.1 Schnell، FLUX.2 Klein، Z-Anime |
-| 🎬 توليد الفيديو | **LTX-2.5 22B Distilled INT8** (افتراضي) بصوت متزامن، MiniMax H3، LTX-2.3، LTX-Video 13B — ونص إلى فيديو أو صورة إلى فيديو |
+| 🖼️ توليد الصور | Z-Image Turbo (افتراضي)، FLUX.1 Schnell، FLUX.2 Klein، Z-Anime — عبر deAPI |
+| 🎬 توليد الفيديو | **LTX-2.5 22B Distilled INT8** (افتراضي) بصوت متزامن، MiniMax H3، LTX-2.3، LTX-Video 13B — عبر deAPI · **Google Omni 1.2 Flash (Google Flow)** — عبر Gemini API |
+| 🔌 مزودان | **deAPI.ai** للصور والفيديو · **Google Flow** (Gemini Interactions API) لفيديو `gemini-omni-1.2-flash` 3–15 ثانية بنسب 16:9/9:16 ودقة حتى 4K — مفتاحان منفصلان وتبديل تسلسلي مستقل لكل مزود |
 | 🔗 دمج الفيديو | أداة `merge_videos` عبر خدمة دمج خارجية (اختيارية — تضبطها بمتغير `MERGER_API_BASE`) |
 | 🔑 تبديل مفاتيح تسلسلي | أول مفتاح أُضيف يُجرَّب أولًا، ثم التالي ثم التالي… مع تبديل **فوري وصامت** عند أي خطأ أو نفاد رصيد — المهمة تستأنف بنفس `task_id` والعميل لا يرى أخطاء المفاتيح أبدًا |
 | 🗄️ قاعدة Turso | المهام والمفاتيح والإحصائيات كلها في libSQL عبر HTTP — مناسب للـ serverless |
@@ -50,13 +51,21 @@ https://vercel.com/new/clone?repository-url=https://github.com/myproducts182-com
 | `MERGER_API_BASE` | اختياري | عنوان خدمة دمج الفيديو (Video Merger API v2) |
 | `MCP_ACCESS_TOKEN` | اختياري | إن ضُبط يُطلب `Authorization: Bearer <token>` على `/mcp` |
 | `ADMIN_TOKEN` | اختياري | حماية إضافة/حذف المفاتيح (ترويسة `X-Admin-Token`) |
-| `DEAPI_IMAGE_MODEL` / `DEAPI_VIDEO_MODEL` | اختياري | تجاوز الموديلين الافتراضيين |
+| `DEAPI_IMAGE_MODEL` / `DEAPI_VIDEO_MODEL` | اختياري | تجاوز الموديلين الافتراضيين لـ deAPI |
+| `GOOGLE_FLOW_PUBLIC_BASE` | اختياري | نطاق عام لروابط فيديو Google Flow — يُستنتج تلقائيًا من Vercel (`VERCEL_PROJECT_PRODUCTION_URL`)، اضبطه فقط للتشغيل المحلي خارج Vercel |
 
 3. **Deploy** — لا حاجة لأي إعداد آخر (لا بناء، لا اعتماديات).
 
-### 3) أضف مفتاح deAPI
+### 3) أضف المفاتيح
 
-بعد فتح رابط المشروع على Vercel: من بطاقة **مدير المفاتيح** أضف مفتاحك (يبدأ بـ `sk-dp-…`). المفتاح يُخزَّن في Turso ويظهر **مقنَّعًا** دائمًا (`sk-dp-2••••••••06ae`). أضف أكثر من مفتاح لتفعيل التبديل التسلسلي.
+بعد فتح رابط المشروع على Vercel: من بطاقة **مدير المفاتيح** أضف مفتاحك لكل مزود:
+
+- **deAPI.ai** (`sk-dp-…`): من deapi.ai — يعمل مع كل موديلات الصور والفيديو.
+- **Google Flow** (`AIza…`): أنشئه من [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — يعمل مع موديل `Google Omni 1.2 Flash` للفيديو فقط (يتطلب تفعيل الفوترة على مشروع Google لأن موديلات الفيديو ليست في الطبقة المجانية).
+
+المفاتيح تُخزَّن في Turso وتظهر **مقنَّعة** دائمًا (`sk-dp-2••••••••06ae`). أضف أكثر من مفتاح لكل مزود لتفعيل التبديل التسلسلي المستقل.
+
+> **ملاحظة — روابط فيديو Google Flow:** روابط Files API لدى Google تتطلب مفتاحًا للتنزيل، لذا يُقدَّم الفيديو عبر وسيط التطبيق نفسه: `https://<your-app>.vercel.app/api/gf/{task_id}` — رابط عام يعمل مع المتصفح وخدمة الدمج دون كشف أي مفتاح، ويبقى صالحًا طوال بقاء الملف لدى Google (~48 ساعة).
 
 ### 4) تحقق من الجهوزية
 
@@ -100,6 +109,8 @@ curl https://<your-app>.vercel.app/api/health
 | `list_media` | أحدث الوسائط المخزنة بروابطها لاسترجاع نتائج سابقة |
 | `search` | بحث بالكلمة المفتاحية في مكتبة الوسائط — إلزامية لموصلات Deep Research في ChatGPT (ترجع `[{id,title,url}]`) |
 | `fetch` | جلب سجل مهمة كامل `{id,title,text,url}` مع تحديث حي — إلزامية لموصلات Deep Research في ChatGPT |
+
+> موديل Google Flow في أداة `generate_video`: `GeminiOmni12Flash` — المدة 3–15 ثانية (بدلًا من الإطارات)، النسبة 16:9 أو 9:16 فقط، الصوت الأصلي مدمج، ونتيجته تُقدَّم عبر رابط الوسيط العام.
 
 ---
 

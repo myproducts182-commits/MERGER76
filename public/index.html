@@ -242,11 +242,14 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
     <!-- مدير المفاتيح -->
     <section class="card">
       <h2><span class="ic">🔑</span> مدير المفاتيح</h2>
-      <div class="sub">مفاتيح مزود deAPI.ai — تُخزَّن في قاعدة Turso وتظهر مقنَّعة دائمًا.</div>
-      <div class="hint"><span class="i">💡</span><span>أضف عدة مفاتيح لكل مزود — التجربة <b>تسلسلية</b> (أول مفتاح أُضيف يُجرَّب أولًا، ثم التالي ثم التالي) مع تبديل فوري تلقائي عند أي خطأ أو نفاد رصيد دون توقف المهمة.</span></div>
+      <div class="sub">مفاتيح مزودي التوليد — تُخزَّن في قاعدة Turso وتظهر مقنَّعة دائمًا.</div>
+      <div class="hint"><span class="i">💡</span><span>أضف عدة مفاتيح لكل مزود — التجربة <b>تسلسلية</b> (أول مفتاح أُضيف يُجرَّب أولًا، ثم التالي ثم التالي) مع تبديل فوري تلقائي عند أي خطأ أو نفاد رصيد دون توقف المهمة. مفتاح Google Flow يُنشأ من <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> ويعمل مع موديلات الفيديو فقط.</span></div>
       <div class="row c3">
         <div><label class="f">المزود</label>
-          <select id="kProvider"><option value="deapi">deAPI.ai</option></select>
+          <select id="kProvider" onchange="keyProviderChanged()">
+            <option value="deapi">deAPI.ai — الصور والفيديو</option>
+            <option value="google-flow">Google Flow — فيديو Gemini</option>
+          </select>
         </div>
         <div><label class="f">تسمية (اختيارية)</label><input type="text" id="kLabel" placeholder="مثل: مفتاح رئيسي"></div>
         <div><label class="f">مفتاح API</label><input type="password" id="kKey" placeholder="sk-dp-…" style="direction:ltr;text-align:left"></div>
@@ -394,6 +397,10 @@ function copyLink(btn) { navigator.clipboard.writeText(btn.dataset.u).then(() =>
 async function delTask(id) { const r = await api('/api/tasks/' + id, { method: 'DELETE' }); if (r.ok) { toast('حُذفت المهمة', 'ok'); loadTasks(); } else toast('تعذر الحذف', 'bad'); }
 
 // ============ المفاتيح ============
+function keyProviderChanged() {
+  $('kKey').placeholder = $('kProvider').value === 'google-flow' ? 'AIza… (مفتاح Google AI Studio)' : 'sk-dp-… (مفتاح deAPI.ai)';
+}
+const PROVIDER_AR = { deapi: 'deAPI.ai', 'google-flow': 'Google Flow' };
 async function loadKeys() {
   const { data } = await api('/api/keys');
   if (!data || !data.keys) return;
@@ -401,6 +408,7 @@ async function loadKeys() {
   if (!data.keys.length) { box.innerHTML = '<div class="empty">لا توجد مفاتيح بعد — أضف أول مفتاح لتبدأ التوليد.</div>'; return; }
   box.innerHTML = data.keys.map((k) => `<div class="item">
     <div class="top">
+      <span class="tag">${PROVIDER_AR[k.provider] || k.provider}</span>
       <span class="mono" style="font-size:13px;font-weight:700">${esc(k.masked)}</span>
       ${statusTag(k.status)}
       <span class="meta">${esc(k.label || 'بلا تسمية')}</span>

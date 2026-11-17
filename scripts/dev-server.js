@@ -23,6 +23,7 @@ const routes = {
 const dynamic = [
   { re: /^\/api\/keys\/([^/]+)$/, file: ROOT + '/api/keys/[id].js' },
   { re: /^\/api\/tasks\/([^/]+)$/, file: ROOT + '/api/tasks/[id].js' },
+  { re: /^\/api\/gf\/([^/]+)$/, file: ROOT + '/api/gf/[id].js' },
 ];
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
