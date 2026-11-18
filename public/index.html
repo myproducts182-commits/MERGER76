@@ -199,6 +199,7 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
       <div class="tabs">
         <button class="tab on" data-mode="image" onclick="setMode('image')">🖼️ صورة</button>
         <button class="tab" data-mode="video" onclick="setMode('video')">🎬 فيديو</button>
+        <button class="tab" data-mode="speech" onclick="setMode('speech')">🔊 صوت</button>
       </div>
       <label class="f">الوصف (Prompt)</label>
       <textarea id="prompt" placeholder="صف ما تريد توليده بالتفصيل… (في الفيديو: الحوار داخل الوصف يُنطَق في المشهد)"></textarea>
@@ -207,7 +208,7 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
           <label class="f">الموديل</label>
           <select id="model"></select>
         </div>
-        <div>
+        <div id="aspectsWrap">
           <label class="f">نسبة الأبعاد</label>
           <div class="chips" id="aspects"></div>
         </div>
@@ -226,6 +227,14 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
           <div><label class="f">المدة (ثوانٍ 2–10)</label><input type="text" id="vDur" value="5"></div>
           <div><label class="f">رابط صورة الإطار الأول (اختياري — صورة إلى فيديو)</label><input type="text" id="vImg" placeholder="https://…" style="direction:ltr;text-align:left"></div>
         </div>
+      </div>
+      <div id="advSpeech" style="display:none">
+        <div class="row c3" style="margin-top:12px">
+          <div><label class="f">اللغة (lang)</label><input type="text" id="sLang" value="en-us" placeholder="en-us، en-gb…"></div>
+          <div><label class="f">الصوت (voice)</label><input type="text" id="sVoice" value="af_sky" placeholder="af_sky، am_adam…"></div>
+          <div><label class="f">السرعة (0.5–2)</label><input type="text" id="sSpeed" value="1"></div>
+        </div>
+        <div class="hint"><span class="i">💡</span><span>Kokoro بصوت <b>af_sky</b> افتراضيًا — القائمة الكاملة للغات والأصوات لكل موديل في قسم «💰 الرصيد والنماذج» (الكتالوج الحي)، وأداة <b>text_to_speech</b> عبر MCP تدعم أيضًا استنساخ الصوت (voice_clone) والتصميم بالوصف (voice_design).</span></div>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn primary" id="goBtn" onclick="generate()">⚡ توليد الآن</button>
@@ -400,8 +409,9 @@ async function loadTasks() {
   const box = $('tasksList');
   if (!data.tasks.length) { box.innerHTML = '<div class="empty">لا توجد مهام بعد.</div>'; return; }
   box.innerHTML = data.tasks.map((t) => {
+    const TIC = { image: '🖼️', video: '🎬', speech: '🔊', edit: '🖌️', merge: '🔗' };
     const urlBtns = (t.status === 'completed' && t.urls || []).slice(0, 3).map((u, i) =>
-      `<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener">${t.type === 'image' ? '🖼️' : '🎬'} فتح ${t.urls.length > 1 ? i + 1 : ''}</a>
+      `<a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener">${TIC[t.type] || '🎬'} فتح ${t.urls.length > 1 ? i + 1 : ''}</a>
        <button class="btn ghost sm" onclick="copyLink(this)" data-u="${esc(u)}">📋 الرابط</button>`).join('');
     return `<div class="item">
       <div class="top">
@@ -479,6 +489,13 @@ function setMode(m) {
   document.querySelectorAll('#studio .tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === m));
   $('advImage').style.display = m === 'image' ? '' : 'none';
   $('advVideo').style.display = m === 'video' ? '' : 'none';
+  $('advSpeech').style.display = m === 'speech' ? '' : 'none';
+  $('aspectsWrap').style.display = m === 'speech' ? 'none' : '';
+  $('prompt').placeholder = m === 'speech'
+    ? 'اكتب النص المراد تحويله إلى كلام…'
+    : m === 'image'
+      ? 'صف ما تريد توليده بالتفصيل…'
+      : 'صف المشهد بالتفصيل… (الحوار داخل الوصف يُنطَق في المشهد)';
   fillModels();
 }
 async function loadModels() {
@@ -552,13 +569,18 @@ function pickAspect(a) { curAspect = a; renderAspects(); }
 
 async function generate() {
   const prompt = $('prompt').value.trim();
-  if (!prompt) { toast('اكتب وصفًا أولًا', 'bad'); return; }
+  if (!prompt) { toast(MODE === 'speech' ? 'اكتب النص أولًا' : 'اكتب وصفًا أولًا', 'bad'); return; }
   const body = { type: MODE, prompt, model: $('model').value };
   if (MODE === 'image') {
     const w = parseInt($('iW').value), h = parseInt($('iH').value), s = parseInt($('iSteps').value);
     if (w) body.width = w; if (h) body.height = h; if (s) body.steps = s;
     if (curAspect !== 'auto' && !w && !h) body.aspect_ratio = curAspect;
     if ($('iNeg').value.trim()) body.negative_prompt = $('iNeg').value.trim();
+  } else if (MODE === 'speech') {
+    const lang = $('sLang').value.trim(), voice = $('sVoice').value.trim(), sp = parseFloat($('sSpeed').value);
+    if (lang) body.lang = lang;
+    if (voice) body.voice = voice;
+    if (sp && sp >= 0.5 && sp <= 2) body.speed = sp;
   } else {
     const d = parseFloat($('vDur').value);
     if (d) body.duration = d;
@@ -604,9 +626,11 @@ function pollTask(id) {
 }
 function showResult(t) {
   const u = (t.urls || [])[0] || '';
-  const inner = MODE === 'image'
+  const inner = t.type === 'image'
     ? `<img src="${esc(u)}" alt="النتيجة" loading="lazy">`
-    : `<video src="${esc(u)}" controls autoplay loop playsinline></video>`;
+    : t.type === 'speech'
+      ? `<audio src="${esc(u)}" controls autoplay></audio>`
+      : `<video src="${esc(u)}" controls autoplay loop playsinline></video>`;
   $('result').innerHTML = inner + `<div class="bar">
       <button class="btn ghost sm" onclick="copyLink(this)" data-u="${esc(u)}">📋 نسخ الرابط</button>
       <a class="btn ghost sm" href="${esc(u)}" target="_blank" rel="noopener">↗ فتح</a>
