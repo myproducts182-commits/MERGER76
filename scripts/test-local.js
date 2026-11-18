@@ -6,6 +6,10 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
+// وضع الاختبار: getKeyPool لا يُمرّر إلا مفاتيح الاختبار الوهمية —
+// حتى لو كانت المفاتيح الحقيقية موجودة في نفس قاعدة Turso (حماية من استهلاك الرصيد)
+process.env.MERGER_TEST_MODE = '1';
+
 const ROOT = path.join(__dirname, '..');
 const PORT = 3100;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -60,7 +64,7 @@ async function main() {
 
   // تشغيل خادم التطوير
   const server = spawn('node', [path.join(ROOT, 'scripts/dev-server.js')], {
-    env: { ...process.env, PORT: String(PORT) },
+    env: { ...process.env, PORT: String(PORT), MERGER_TEST_MODE: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   server.stderr.on('data', (d) => process.stderr.write('[server] ' + d));
@@ -206,7 +210,10 @@ async function main() {
     for (const id of fakeKeyIds) await db.deleteKey(id);
     ok(`حُذفت ${testTaskIds.length} مهمة تجريبية و${fakeKeyIds.length} مفتاح وهمي`, true);
     const pool = await db.getKeyPool(['deapi']);
-    ok('القاعدة عادت بلا مفاتيح deAPI نشطة', pool.every((k) => k.status === 'disabled'), `الفعلي: ${pool.length} (المعطلة لا تعيق التوليد عند إضافة مفتاح حقيقي)`);
+    const leftoverFake = pool.filter((k) => k.api_key.includes('TEST') || (k.label || '').includes('TEST'));
+    ok('القاعدة عادت بلا مفاتيح اختبار نشطة (المفاتيح الحقيقية تُستثنى)',
+      leftoverFake.every((k) => k.status === 'disabled'),
+      `مفاتيح اختبار متبقية: ${leftoverFake.length} · مفاتيح حقيقية نشطة: ${pool.length - leftoverFake.length}`);
   } finally {
     server.kill('SIGKILL');
   }

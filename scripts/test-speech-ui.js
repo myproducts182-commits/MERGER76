@@ -15,7 +15,7 @@ async function wait(ms = 15000) {
 }
 
 (async () => {
-  const server = spawn('node', [path.join(ROOT, 'scripts/dev-server.js')], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
+  const server = spawn('node', [path.join(ROOT, 'scripts/dev-server.js')], { env: { ...process.env, PORT: String(PORT), MERGER_TEST_MODE: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
   let code = 1;
   try {
     if (!await wait()) throw new Error('server not up');
