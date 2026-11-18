@@ -1,34 +1,14 @@
 // خادم تطوير محلي يحاكي بيئة Vercel:
+// - كل مسارات /api/* و /mcp تمر عبر lib/router.js (نفس الموزع المستخدم في الإنتاج api/[[...path]].js)
 // - يخدم الملفات الثابتة من public/
-// - يحلّل المسارات الديناميكية /api/keys/{id} و /api/tasks/{id} ويضعها في req.query.id
-// - يوجّه /mcp → api/mcp.js
 // التشغيل: node scripts/dev-server.js  (افتراضيًا على المنفذ 3000)
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { handle } = require('../lib/router');
 
 const ROOT = path.join(__dirname, '..');
 const PORT = process.env.PORT || 3000;
-
-const routes = {
-  '/api/health': ROOT + '/api/health.js',
-  '/api/models': ROOT + '/api/models.js',
-  '/api/balance': ROOT + '/api/balance.js',
-  '/api/keys': ROOT + '/api/keys.js',
-  '/api/tasks': ROOT + '/api/tasks.js',
-  '/api/generate': ROOT + '/api/generate.js',
-  '/api/merge': ROOT + '/api/merge.js',
-  '/mcp': ROOT + '/api/mcp.js',
-  '/mcp/': ROOT + '/api/mcp.js',
-  '/api/flow/bridge': ROOT + '/api/flow/bridge.js',
-  '/api/flow/status': ROOT + '/api/flow/status.js',
-};
-const dynamic = [
-  { re: /^\/api\/keys\/([^/]+)$/, file: ROOT + '/api/keys/[id].js' },
-  { re: /^\/api\/tasks\/([^/]+)$/, file: ROOT + '/api/tasks/[id].js' },
-  { re: /^\/api\/gf\/([^/]+)$/, file: ROOT + '/api/gf/[id].js' },
-  { re: /^\/api\/flow\/file\/([^/]+)$/, file: ROOT + '/api/flow/file/[id].js' },
-];
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
 
@@ -43,18 +23,14 @@ function serveStatic(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const urlPath = req.url.split('?')[0];
+  const p = req.url.split('?')[0];
   try {
-    let handlerPath = routes[urlPath];
-    for (const d of dynamic) {
-      const m = urlPath.match(d.re);
-      if (m) { req.query = { ...(req.query || {}), id: decodeURIComponent(m[1]) }; handlerPath = d.file; break; }
+    if (p === '/api' || p.startsWith('/api/') || p === '/mcp' || p.startsWith('/mcp/')) {
+      return await handle(req, res);
     }
-    if (!handlerPath) return serveStatic(req, res);
-    const mod = require(handlerPath);
-    return await mod(req, res);
+    return serveStatic(req, res);
   } catch (e) {
-    console.error('[dev-server]', urlPath, e);
+    console.error('[dev-server]', p, e);
     if (!res.headersSent) { res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' }); }
     res.end(JSON.stringify({ error: 'internal: ' + e.message }));
   }
