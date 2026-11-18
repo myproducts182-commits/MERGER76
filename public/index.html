@@ -259,6 +259,20 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
       <div class="list" id="keysList"><div class="empty">لا توجد مفاتيح بعد — أضف أول مفتاح لتبدأ التوليد.</div></div>
     </section>
 
+    <!-- الرصيد والنماذج -->
+    <section class="card" id="balanceModels">
+      <h2><span class="ic">💰</span> الرصيد والنماذج</h2>
+      <div class="sub">الرصيد المتبقي في حسابات deAPI (يُستهلك عند كل توليد) + كل النماذج المتاحة للمزود مع حالتها.</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="loadBalance()">🔄 تحديث الرصيد</button>
+        <span class="meta" id="balTotal" style="font-size:13px"></span>
+      </div>
+      <div class="list" id="balanceList"><div class="empty">اضغط «تحديث الرصيد» للاستعلام — قراءة الرصيد تتطلب مفتاحًا بصلاحية Admin لدى deAPI.</div></div>
+      <div class="divider"></div>
+      <div class="sec-title">كل النماذج المتاحة</div>
+      <div class="list" id="allModels"><div class="empty">جارٍ التحميل…</div></div>
+    </section>
+
     <!-- Google Flow — الجسر المحلي -->
     <section class="card">
       <h2><span class="ic">🔮</span> Google Flow — الجسر المحلي</h2>
@@ -295,11 +309,15 @@ a.link{color:var(--cyan);text-decoration:none;font-weight:700}
       </div>
       <div class="hint blue" style="margin-top:14px"><span class="i">⏳</span><span>الفيديو يحتاج دقائق: يعيد السيرفر <b>task_id</b> فورًا، ويتابع تلقائيًا بـ <b>get_task</b> كل 10 ثوانٍ — وعند الاكتمال يُعرض الرابط في الدردشة ويتوقف. أثناء الانتظار يُبث تقدم حي (Progress notifications) حتى لا تنقطع العملية.</span></div>
       <div class="divider"></div>
-      <div class="sec-title">الأدوات الخمس</div>
+      <div class="sec-title">الأدوات التسع</div>
       <div class="tools">
-        <div class="tool"><b>generate_image</b><span>توليد صورة من وصف نصي — إعادة الرابط جاهزًا عند الاكتمال خلال نافذة الانتظار.</span></div>
-        <div class="tool"><b>generate_video</b><span>فيديو بصوت متزامن أصلي (LTX-2.5) — نص إلى فيديو أو صورة إلى فيديو.</span></div>
+        <div class="tool"><b>generate_image</b><span>توليد صورة من نص — إعادة الرابط جاهزًا عند الاكتمال خلال نافذة الانتظار.</span></div>
+        <div class="tool"><b>edit_image</b><span>تحرير صورة موجودة بالوصف (صورة+نص→صورة) — Qwen Image Edit / FLUX.2.</span></div>
+        <div class="tool"><b>generate_video</b><span>فيديو بصوت متزامن أصلي — نص إلى فيديو أو صورة إلى فيديو (إطار أول).</span></div>
+        <div class="tool"><b>text_to_speech</b><span>تحويل النص إلى كلام mp3 — Kokoro / Chatterbox / Qwen3-TTS مع استنساخ الصوت.</span></div>
         <div class="tool"><b>merge_videos</b><span>دمج عدة مقاطع في فيديو واحد بالترتيب المطلوب (urls أو task_ids).</span></div>
+        <div class="tool"><b>list_models</b><span>كل النماذج المتاحة للنموذج الذكي: الصور، التحرير، الفيديو، الصوت — مع الأسعار والأصوات.</span></div>
+        <div class="tool"><b>check_balance</b><span>الرصيد المتبقي لكل مفتاح deAPI والمجموع — الرصيد الذي سيُستهلك عند التوليد.</span></div>
         <div class="tool"><b>get_task</b><span>تتبع أي مهمة بمعرّفها — توليد أو دمج — مع تحديث حي من المزود.</span></div>
         <div class="tool"><b>list_media</b><span>أحدث الوسائط المخزنة بروابطها لاسترجاع نتائج سابقة.</span></div>
       </div>
@@ -361,7 +379,7 @@ function statusTag(s) {
   return `<span class="tag ${s}">${s === 'processing' ? '<span class="dot"></span>' : ''}${ar[s] || s}</span>`;
 }
 function typeTag(t) {
-  const ar = { image: 'صورة', video: 'فيديو', merge: 'دمج' };
+  const ar = { image: 'صورة', video: 'فيديو', merge: 'دمج', edit: 'تحرير', speech: 'صوت' };
   return `<span class="tag ${t}">${ar[t] || t}</span>`;
 }
 function dt(s) {
@@ -467,6 +485,59 @@ async function loadModels() {
   const { data } = await api('/api/models');
   if (data && data.image) MODELS = data;
   fillModels();
+  renderAllModels();
+}
+// كل النماذج المتاحة (الثابتة + الكتالوج الحي) في قسم «الرصيد والنماذج»
+function renderAllModels() {
+  const box = $('allModels');
+  if (!box) return;
+  const sec = (title, arr, extra) => {
+    if (!arr || !arr.length) return '';
+    return `<div class="sec-title" style="margin-top:8px">${title}</div>` + arr.map((m) => {
+      const feat = m.featured ? ' ⭐' : '';
+      const lim = m.limits || {};
+      const d = m.defaults || {};
+      const dd = Object.entries(d).filter(([k]) => ['width','height','steps','frames','fps','lang','voice','speed'].includes(k))
+        .map(([k, v]) => `${k}=${v}`).join(' · ');
+      return `<div class="item"><div class="top"><b>${esc(m.slug)}</b>${feat}<span class="meta">${esc(m.label || '')}</span></div>
+        ${dd ? `<div class="meta">الافتراضي: ${esc(dd)}</div>` : ''}
+        ${extra ? extra(m) : ''}</div>`;
+    }).join('');
+  };
+  let html = sec('🖼️ الصور (نص→صورة)', MODELS.image) + sec('🖌️ التحرير (صورة+نص→صورة)', MODELS.edit)
+    + sec('🎬 الفيديو (نص→فيديو / صورة→فيديو)', MODELS.video) + sec('🔊 الصوت (نص→كلام)', MODELS.speech);
+  if (MODELS.live && MODELS.live.length) {
+    const TYPE_AR = { txt2img: 'صورة من نص', img2img: 'تحرير صورة', txt2video: 'فيديو من نص', img2video: 'فيديو من صورة', txt2speech: 'نص→كلام' };
+    html += `<div class="sec-title" style="margin-top:8px">📦 الكتالوج الحي من deAPI (${MODELS.live.length} موديل)</div>` + MODELS.live.map((c) => {
+      const types = (c.inference_types || []).map((t) => TYPE_AR[t] || t).join('، ');
+      const price = c.price !== undefined && c.price !== null ? ` · السعر: ${typeof c.price === 'object' ? JSON.stringify(c.price) : c.price}` : '';
+      const voices = Array.isArray(c.voices) && c.voices.length ? ` · أصوات: ${c.voices.slice(0, 10).map((v) => v && (v.slug || v.name || v)).filter(Boolean).join(', ')}` : '';
+      const langs = Array.isArray(c.languages) && c.languages.length ? ` · لغات: ${c.languages.slice(0, 10).map((l) => l && l.slug).filter(Boolean).join(', ')}` : '';
+      const st = c.status && c.status !== 'active' ? ` [${c.status}]` : '';
+      return `<div class="item"><div class="top"><b>${esc(c.slug)}</b>${st}</div><div class="meta">${esc(c.name || '')}${types ? ` · ${esc(types)}` : ''}${price}${langs}${voices}</div></div>`;
+    }).join('');
+  }
+  box.innerHTML = html || '<div class="empty">لا توجد نماذج.</div>';
+}
+// الرصيد المتبقي لكل مفتاح deAPI نشط — الرصيد الذي يُستهلك عند كل توليد
+async function loadBalance() {
+  const box = $('balanceList');
+  box.innerHTML = '<div class="empty">جارٍ الاستعلام من deAPI…</div>';
+  $('balTotal').textContent = '';
+  const { ok, data } = await api('/api/balance');
+  if (!ok) { box.innerHTML = `<div class="empty">${esc((data && data.error) || 'تعذر الاستعلام')}</div>`; return; }
+  if (!data.keys || !data.keys.length) { box.innerHTML = '<div class="empty">لا توجد مفاتيح deAPI نشطة — أضف مفتاحًا من مدير المفاتيح أعلاه.</div>'; return; }
+  box.innerHTML = data.keys.map((k) => `<div class="item">
+    <div class="top">
+      <span class="mono" style="font-size:13px;font-weight:700">${esc(k.masked)}</span>
+      <span class="meta">${esc(k.label || 'بلا تسمية')}</span>
+      <span class="spacer"></span>
+      ${k.balance !== undefined ? `<b style="color:var(--green);font-size:15px">${k.balance}</b>` : `<span class="meta">${esc(k.error || 'غير متاح')}</span>`}
+    </div>
+  </div>`).join('');
+  $('balTotal').textContent = data.readable
+    ? `الإجمالي المقروء: ${data.total} عبر ${data.readable} من ${data.count} مفتاح`
+    : 'لا يمكن قراءة أي رصيد — تحتاج مفاتيح بصلاحية Admin لدى deAPI';
 }
 function fillModels() {
   const list = MODELS[MODE] || [];
@@ -604,7 +675,7 @@ async function loadFlowStatus() {
   box.innerHTML = html + '</div>';
 }
 
-loadHealth(); loadModels(); loadKeys(); loadTasks(); loadFlowStatus(); setInterval(loadFlowStatus, 10000);
+loadHealth(); loadModels(); loadKeys(); loadTasks(); loadFlowStatus(); loadBalance(); setInterval(loadFlowStatus, 10000);
 setInterval(loadTasks, 5000);
 setInterval(loadHealth, 30000);
 </script>

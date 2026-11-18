@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 const routes = {
   '/api/health': ROOT + '/api/health.js',
   '/api/models': ROOT + '/api/models.js',
+  '/api/balance': ROOT + '/api/balance.js',
   '/api/keys': ROOT + '/api/keys.js',
   '/api/tasks': ROOT + '/api/tasks.js',
   '/api/generate': ROOT + '/api/generate.js',

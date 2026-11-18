@@ -1,8 +1,8 @@
 {
   "name": "merger76-mcp-media-generator",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "خادم MCP لتوليد الصور والفيديو (deAPI.ai) مع لوحة إدارة عربية وقاعدة Turso — جاهز للنشر على Vercel",
+  "description": "خادم MCP لتوليد الصور والفيديو وتحويل النص لكلام (deAPI.ai) مع لوحة إدارة عربية وقاعدة Turso — جاهز للنشر على Vercel",
   "engines": {
     "node": "22.x"
   },
