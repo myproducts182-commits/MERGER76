@@ -25,6 +25,6 @@ module.exports = async (req, res) => {
     merger: { base: env.MERGER_API_BASE || null, configured: !!env.MERGER_API_BASE, healthy: mHealthy },
     flowBridge,
     authRequired: !!env.MCP_ACCESS_TOKEN,
-    version: '1.6.0',
+    version: require('../package.json').version, // من package.json مباشرة — لا يتقادم كقيمة ثابتة
   });
 };
